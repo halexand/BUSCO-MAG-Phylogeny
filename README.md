@@ -15,5 +15,5 @@ Includes:
 
 
 
-Note: predicted proteins from reference genomes pulled from JGI.  
+Note: predicted proteins from reference genomes pulled from JGI with [jgi-query](https://github.com/glarue/jgi-query).  
  
