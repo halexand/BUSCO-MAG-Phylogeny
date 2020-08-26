@@ -1,0 +1,60 @@
+__default__:
+    system: 'slurm' #check if system is defined below
+    account: halexander #requred
+    time: 120 # minutes
+    mem: 10 # GB
+    threads: 8
+    queue: compute # required
+    nodes: 1
+    command_options:
+        slurm:
+            command: "sbatch --parsable --qos=unlim"
+            key_mapping:
+            name: "--job-name={}"
+            threads: "-n {}"
+            mem: "--mem={}g"
+            account: "--account={}"
+            queue: "--partition={}"
+            time: "--time={}"
+            nodes: "-N {}"      # ntasks: 24
+
+metaeuk: 
+    queue: compute 
+    threads: 32
+    mem: 130 
+    time: 720
+train_genemark:
+    queue: compute
+    threads: 4
+    mem: 20
+    time: 720
+run_maker:
+    queue: scavenger 
+    threads: 6
+    mem: 32
+    time: 4800
+combine_maker:
+    queue: scavenger 
+    threads: 2
+    mem: 18
+    time: 800
+combine_maker_gff3:
+    queue: compute
+    threads: 2
+    mem: 18
+    time: 800
+pfam:
+    queue: scavenger
+    mem: 8
+    time: 1440
+    threads: 8
+diamond_map: 
+    queue: scavenger 
+    threads: 8
+    mem: 16
+    time: 1140
+busco:
+    queue: scavenger
+    threads: 8
+    mem: 16
+    time: 1140

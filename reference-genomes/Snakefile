@@ -1,0 +1,75 @@
+shell.executable("/bin/bash")
+#shell.prefix("source $HOME/.bashrc; ")
+
+import os
+
+configfile: "config.yaml"
+GENOME_DIR=config['genome_dir']
+IDS, = glob_wildcards(os.path.join(GENOME_DIR,"{id}.aa.fasta"))
+BUSCO_GROUP = config['busco_group']
+
+rule all:
+	 input:
+ # BUSCO 
+            expand(os.path.join('busco',BUSCO_GROUP,'{magid}','run_'+BUSCO_GROUP,"full_table.tsv"), magid=IDS),
+
+localrules: run_make_dir_maker, static_file, configure_busco, download_lineage, download_busco 
+
+rule static_file:
+    output: os.path.join('static','config.ini')
+    conda: 
+        'envs/busco.yaml'
+    shell:
+        '''
+        busco_configurator.py $BUSCO_CONFIG_FILE {output}
+        
+        '''
+
+rule download_busco:
+    output: os.path.join('busco_downloads', 'file_versions.tsv')
+    params: url='https://busco-data.ezlab.org/v4/data/', 
+    shell:
+        '''
+        wget {params.url}file_versions.tsv
+        cp file_versions.tsv {output}
+        '''
+rule download_lineage: 
+    input: os.path.join('busco_downloads', 'file_versions.tsv')
+    output: directory(os.path.join('busco_downloads', 'lineages', BUSCO_GROUP))
+    params: url='https://busco-data.ezlab.org/v4/data/', bg=BUSCO_GROUP
+    shell: 
+        '''
+        date=$(grep ^{params.bg} {input}| cut -f2)
+        wget {params.url}lineages/{params.bg}.$date.tar.gz
+        tar -xvzf {params.bg}.$date.tar.gz
+        rm {params.bg}.$date.tar.gz
+        mv {params.bg} {output}
+        '''
+
+rule configure_busco:
+    input:  fastafile = os.path.join(GENOME_DIR,"{magid}.aa.fasta"), conf = os.path.join('static', 'config.ini')
+    output: os.path.join('busco','conf-files','{magid}.ini')
+    params: directory = os.path.join('busco',BUSCO_GROUP), name='{magid}'
+    shell:
+        '''
+        cp {input.conf} {output}
+        sed -i 's%;out = BUSCO_run%out = {params.name}%' {output} 
+        sed -i 's%;out_path = /path/to/output_folder%out_path = {params.directory}%' {output}
+        sed -i 's%;download_path = ./busco_downloads/%download_path = ./busco_downloads/%' {output}
+        '''
+
+rule busco:  
+    input:
+        fastafile = os.path.join(GENOME_DIR,"{magid}.aa.fasta"), config = os.path.join('busco','conf-files','{magid}.ini'), busco_data = directory(os.path.join('busco_downloads', 'lineages', BUSCO_GROUP)) 
+
+    output: 
+        os.path.join('busco',BUSCO_GROUP,'{magid}','run_'+BUSCO_GROUP, "full_table.tsv")
+    params: 
+        busco_level = BUSCO_GROUP,
+        CPUs = 8
+    conda:
+        'envs/busco.yaml'
+    shell:
+        '''
+        busco -i {input.fastafile} -f -l {params.busco_level} -m protein --cpu {params.CPUs} --config {input.config} --offline 
+        '''
