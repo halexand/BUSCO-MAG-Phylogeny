@@ -10,6 +10,7 @@ configfile: "config.yaml"
 
 FULL_PATH = config['full_path']
 AADIR=config['busco_dir']
+OUTGROUP = config['outgroup']
 IDS, = glob_wildcards(os.path.join(AADIR,"{id}.concatenated.faa"))
 
 rule all:
@@ -22,7 +23,8 @@ rule all:
             # FASTTREE
             os.path.join(AADIR, 'trees/fasttree.nwk'),
             # RAXML (Long run time) 
-            #os.path.join(FULL_PATH, AADIR, 'trees', 'raxml', 'RAxML_bestTree.EUK-MAG')     
+            #os.path.join(FULL_PATH, AADIR, 'trees', 'raxml', 'RAxML_bestTree.EUK-MAG')    
+            #os.path.join(FULL_PATH, AADIR, 'trees', 'RAxML_bestTree.EUK-MAG.rerooted.nwk') 
 localrules: order_add_missing,concatenated_fasta
 
 rule mafft:
@@ -109,4 +111,13 @@ rule raxml:
     shell:'''
           mkdir -p {params.outdir}
           raxmlHPC-PTHREADS-SSE3 -T 16 -f a -m PROTGAMMAJTT -N 100 -n {params.name} -w {params.outdir} -s {input} -p 42 -x 42
+          '''
+
+rule re_root_raxml:
+    input: os.path.join(FULL_PATH, AADIR, 'trees', 'raxml', 'RAxML_bestTree.EUK-MAG')
+    output: os.path.join(FULL_PATH, AADIR, 'trees', 'RAxML_bestTree.EUK-MAG.rerooted.nwk')
+    conda: "envs/raxmll.yaml"
+    params: outgroup = OUTGROUP
+    shell:'''
+          nw_reroot {input} {params.outgroup} > {output}
           '''
