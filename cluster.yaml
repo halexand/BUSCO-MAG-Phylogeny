@@ -28,3 +28,8 @@ raxml:
     threads: 16
     mem: 80
     time: 4320
+fast_tree:
+    queue: compute
+    threads: 32
+    mem: 180
+    time: 4320

@@ -25,6 +25,7 @@ rule all:
             # RAXML (Long run time) 
             #os.path.join(FULL_PATH, AADIR, 'trees', 'raxml', 'RAxML_bestTree.EUK-MAG')    
             #os.path.join(FULL_PATH, AADIR, 'trees', 'RAxML_bestTree.EUK-MAG.rerooted.nwk') 
+            expand(os.path.join(AADIR, 'mafft/{id}.aln.clustalw.out'), id = IDS)
 localrules: order_add_missing,concatenated_fasta
 
 rule mafft:
@@ -43,6 +44,15 @@ rule trimal:
     shell:'''
           trimal -in {input} -out {output} -automated1
           '''
+
+rule clustalw:
+    input: os.path.join(AADIR, 'mafft/{id}.aln.trimmed')
+    output: os.path.join(AADIR, 'mafft/{id}.aln.clustalw.out')
+    conda: "envs/clustalo.yaml"
+    shell: '''
+           clustalo --infile {input} --distmat-out {output} --percent-id --full
+           '''
+
 rule order_add_missing:
     input: os.path.join(AADIR,'mafft/{id}.aln.trimmed',), os.path.join(AADIR, 'ALLMAGS.list')
     output: os.path.join(AADIR, 'mafft/{id}.aln.trimmed.ordered',)
@@ -100,7 +110,7 @@ rule fast_tree:
     output: os.path.join(AADIR, 'trees/fasttree.nwk')
     conda: "envs/raxmll.yaml"
     shell:'''
-          FastTree {input} > {output}
+          FastTree -boot 100 {input} > {output}
           '''
 
 rule raxml:
